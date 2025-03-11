@@ -281,7 +281,7 @@ static const INFO TABLE[] =
     {"pwrite64",                0, 0, P_IO, {A_FD, ABUF, ASIZ, AOFF, A___, A___}, RSIZ, M______},
     {"readv",                   0, 1, P_IO, {A_FD, AIOV, ADEC, A___, A___, A___}, RSIZ, M_I____},
     {"writev",                  0, 0, P_IO, {A_FD, AIOV, ADEC, A___, A___, A___}, RSIZ, M______},
-    {"access",                  0, 0, PINF, {ASTR, AOCT, A___, A___, A___, A___}, R__0, M______},
+    {"access",                  1, 0, PINF, {ASTR, AOCT, A___, A___, A___, A___}, R__0, M______},
     {"pipe",                    0, 0, P_FD, {AFD2, A___, A___, A___, A___, A___}, R__0, MI_____},
     {"select",                  0, 1, POLL, {ADEC, ASET, ASET, ASET, A_TV, A___}, RSIZ, M_IIII_},
     {"sched_yield",             0, 1, PTHR, {A___, A___, A___, A___, A___, A___}, R__0, M______},
