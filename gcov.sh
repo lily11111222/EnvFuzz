@@ -38,13 +38,13 @@ for mdir in $outfd/queue/*; do
 
       cd $expdir
       
-      # if ((i == 1)); then
-      #   cp -r proftpd "proftpd1"
+      if ((i == 1)); then
+        cp -r proftpd "proftpd1"
       #   cov_data=$(gcovr -r "$proftpd1" -s | grep "[lb][a-z]*:")
       # else
       #   echo "Copying proftpd to proftpd_copy_$i"
       #   cp -r proftpd "proftpd_copy_$i"
-      # fi
+      fi
       # 复制 proftpd 文件夹到 proftpd_copy_i
       echo "Copying proftpd to proftpd_copy_$i"
       cp -r proftpd "proftpd_copy_$i"
