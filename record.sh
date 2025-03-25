@@ -74,3 +74,11 @@ done
 
 exit
 echo "All files sent."
+
+# ./env-fuzz record -o pro-plus/ftp-8 -- /home/ubuntu/experiments/proftpd-gcov/proftpd -n -c /home/ubuntu/experiments/basic.conf -X
+# cat experiments/in-ftp/seed_8.raw | nc 127.0.0.1 21 -q 1
+# telnet 127.0.0.1 
+
+# ./env-fuzz record -o pro-plus/ftp-9 -- /home/ubuntu/experiments/proftpd-gcov/proftpd -n -c /home/ubuntu/experiments/basic.conf -X
+# cat experiments/in-ftp/seed_9.raw | nc 127.0.0.1 21 -q 1
+# telnet 127.0.0.1
