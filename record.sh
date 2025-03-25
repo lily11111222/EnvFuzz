@@ -25,12 +25,15 @@ mkdir -p "$OUTFD"
 #/home/ubuntu/experiments/proftpd-gcov/proftpd -n -c /home/ubuntu/experiments/basic.conf -X
 
 # 循环发送所有 .raw 文件
-while [ $i -le 13 ]; do
+while [[ $i -le 13 ]]; do
+  if [[ $i -eq 8 || $i -eq 9 ]]; then
+    i=$((i+1))
+    continue
+  fi
   sleep 1
   seed_file="$FOLDER"/seed_$i.raw
   echo $seed_file
   if [ -f "$seed_file" ]; then
-  echo "yes"
     # # 对第 i 个 seed_file 修改 --out 目录
     OUT_DIR="$OUTFD/$Protocol-$i"  # 使用 rtsp-i 作为目录名
 
@@ -49,18 +52,18 @@ while [ $i -le 13 ]; do
 
       echo "Message from $seed_file sent to $SERVER:$PORT"
 
-      # 获取所有进程并筛选出包含 env-fuzz 和 ld-linux-x86-64 的进程
-      pids=$(ps aux | grep -E "ld-linux-x86-64" | grep -v grep | awk '{print $2}')
+      # # 获取所有进程并筛选出包含 env-fuzz 和 ld-linux-x86-64 的进程
+      # pids=$(ps aux | grep -E "ld-linux-x86-64" | grep -v grep | awk '{print $2}')
 
-      # 如果找到了匹配的进程，则发送 SIGUSR1 信号
-      if [ -n "$pids" ]; then
-        for pid in $pids; do
-          echo "Sending SIGUSR1 to process $pid"
-          kill -SIGUSR1 $pid
-        done
-      else
-        echo "No matching processes found."
-      fi
+      # # 如果找到了匹配的进程，则发送 SIGUSR1 信号
+      # if [ -n "$pids" ]; then
+      #   for pid in $pids; do
+      #     echo "Sending SIGUSR1 to process $pid"
+      #     kill -SIGUSR1 $pid
+      #   done
+      # else
+      #   echo "No matching processes found."
+      # fi
     )
     # wait
     echo "done if"
