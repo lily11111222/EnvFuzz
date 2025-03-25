@@ -6,7 +6,7 @@ Protocol=$2
 TOL=$3      # in-seed的数量
 FUZ_TIME=$4 # fuzz的时间，单位是h
 
-i=13
+i=1
 if [ -z "$TOL" ]; then
     echo "Error: Tol is empty or undefined"
     exit 1
