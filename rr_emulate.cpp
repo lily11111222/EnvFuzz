@@ -20,7 +20,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
- static int E_GCDA_FD = -1;
+//  static int E_GCDA_FD = -1;
 
  const char *get_filename_from_fd(int fd) {
  // 获取文件描述符对应的文件名
@@ -52,7 +52,7 @@
      snprintf(proc_fd_path, sizeof(proc_fd_path), "%s%d%s", PROC_FD_BASE, getpid(), PROC_FD_SUFFIX);
      // 构造 /proc/self/fd/<fd> 路径
      snprintf(path, sizeof(path), "%s%d", proc_fd_path, fd);
-     warning("readlink: %s", path);
+    //  warning("readlink: %s", path);
  
      // 读取符号链接指向的实际文件路径
      ssize_t len = readlink(path, filename, PATH_MAX - 1);
@@ -60,7 +60,7 @@
          filename[len] = '\0';  // 添加 null 终止符
          return filename;  // 返回动态分配的路径字符串
      } else {
-         perror("readlink");  // 读取失败，输出错误信息
+        //  perror("readlink");  // 读取失败，输出错误信息
          free(filename);  // 释放分配的内存
          return NULL;
      }

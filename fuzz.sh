@@ -6,7 +6,7 @@ Protocol=$2
 TOL=$3      # in-seed的数量
 FUZ_TIME=$4 # fuzz的时间，单位是h
 
-i=1
+i=13
 if [ -z "$TOL" ]; then
     echo "Error: Tol is empty or undefined"
     exit 1
@@ -15,7 +15,7 @@ fi
 fuzz_time=$(echo "scale=0; ($FUZ_TIME * 3600) / $TOL" | bc)
 echo $fuzz_time
 # 循环发送所有 .raw 文件
-while [ $i -ne $TOL ] ; do
+while [ $i -le $TOL ] ; do
   echo "doing ./env-fuzz fuzz --out $FOLDER/$Protocol-$i --max-time $fuzz_time"
   sudo ./env-fuzz fuzz --out $FOLDER/$Protocol-$i --max-time $fuzz_time
   # 增加计数器

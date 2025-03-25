@@ -38,8 +38,9 @@ for mdir in $outfd/queue/*; do
 
       cd $expdir
       
-      if ((i == 1)); then
-        cp -r proftpd "proftpd1"
+      if [[ i -eq 1 && $outfd = "proftpd-out/ftp-1" ]]; then
+        cp -r proftpd-gcov "proftpd1"
+        cp -r proftpd-gcov "proftpd2"
       #   cov_data=$(gcovr -r "$proftpd1" -s | grep "[lb][a-z]*:")
       # else
       #   echo "Copying proftpd to proftpd_copy_$i"
@@ -47,7 +48,7 @@ for mdir in $outfd/queue/*; do
       fi
       # 复制 proftpd 文件夹到 proftpd_copy_i
       echo "Copying proftpd to proftpd_copy_$i"
-      cp -r proftpd "proftpd_copy_$i"
+      cp -r proftpd-gcov "proftpd_copy_$i"
 
       # 第一轮不进行 gcov-tool merge
       # if (( i > 1 )); then
@@ -69,7 +70,7 @@ for mdir in $outfd/queue/*; do
       
       echo "$time,$l_per,$l_abs,$b_per,$b_abs"
       echo $covfile
-      echo "$time,$l_per,$l_abs,$b_per,$b_abs" >> ../experiments/$covfile
+      echo "$time,$l_per,$l_abs,$b_per,$b_abs,$patch_file" >> ../experiments/$covfile
 
       # 删除 proftpd_copy_$i 文件夹
       echo "Deleting proftpd_copy_$i"
