@@ -34,7 +34,13 @@ for mdir in $outfd/queue/*; do
       time=$(stat -c %Y $patch_file)
       # 执行 './env-fuzz replay' 命令
       echo "Executing: ./env-fuzz replay -o $outfd $patch_file"
-      ./env-fuzz replay -o $outfd "$patch_file" > /dev/null 2>&1
+      timeout 2s ./env-fuzz replay -o $outfd "$patch_file" > /dev/null 2>&1
+      exit_status=$?
+      # 检查是否因为超时退出
+      if [[ $exit_status -eq 124 ]]; then
+        echo "Timeout reached for $patch_file, skipping to next."
+        continue
+      fi
 
       cd $expdir
       
