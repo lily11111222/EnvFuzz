@@ -108,11 +108,232 @@ static MSG *clone(MSG *M, size_t padding = 0)
     return N;
 }
 
+// 解析 P->payload （real_msg） 成 cur_region_seq (RegionSequence)
+static void parse_regions(RegionSequence *cur_region_seq, MSG *P, size_t padding) {
+    // fprintf(stderr, "parse_regions, P->payload: %s\n", (char *)P->payload);
+    // fprintf(stderr, "parse_regions, P->len: %zu\n", P->len);
+    // fprintf(stderr, "parse_regions, P->payload length: %zu\n", strlen((char *)P->payload));
+    cur_region_seq->regions = (char**)pmalloc(sizeof(char*) * 10);
+    cur_region_seq->count = 0;
+    cur_region_seq->capacity = 10;
+    //// 解析 P->payload 填充 cur_region_seq
+    char *start = pstrdup_l((char *)P->payload, P->len);
+    // fprintf(stderr, "start: %s\n", start);
+    char *saveptr = NULL;
+    char *line = strtok_r(start, "\n", &saveptr);
+    // if (line && strlen(line) == 0) {
+    //     fprintf(stderr, "line is empty\n");
+    // }
+    // 不要parse多了！！！
+    while (line) {
+        // fprintf(stderr, "line: %d\n", strlen(line));
+        char* pos;
+        if ((pos = strchr(line, '\n')) != NULL) *pos = '\0';
+        // if (line && (pos = strchr(line, '\r')) != NULL) *pos = '\0';
+        // fprintf(stderr, "line-aft: %d\n", strlen(line));
+        // 跳过空行
+        if (line[0] == '\0') continue;
+        // 扩容
+        if (cur_region_seq->count >= cur_region_seq->capacity) {
+            cur_region_seq->capacity += 5;
+            cur_region_seq->regions = (char**)prealloc(cur_region_seq->regions, sizeof(char*) * cur_region_seq->capacity);
+        }
+        // 存储 region
+        char *copy = pstrdup(line);
+        if (!copy) {
+            fprintf(stderr, "pstrdup failed\n");
+            break ;
+        }
+        cur_region_seq->regions[cur_region_seq->count++] = copy;
+        line = strtok_r(NULL, "\n", &saveptr);
+    }
+    saveptr = NULL;
+    pfree(start);
+}
+
+void replace_region(MSG *P, RegionSequence *cur_region_seq, RNG &R, size_t *padding) {
+    // fprintf(stderr, "replace_region P: %s\n", P->payload);
+    if (cur_region_seq->count == 0) return;
+
+    // fprintf(stderr, "cur_region_seq->count in replace: %zu\n", cur_region_seq->count);
+    uint32_t replace_idx = R.rand(0, cur_region_seq->count - 1);  // 选择 P->payload 里的一个 region，不是第几个，而是region[i]
+    uint32_t new_idx = R.rand(0, region_seq->count - 1);  // 选择 region_seq 里的一个 region 替换
+
+    // fprintf(stderr, "replace_idx: %u, new_idx: %u\n", replace_idx, new_idx);
+
+    char *target = cur_region_seq->regions[replace_idx];
+    char *replacement = region_seq->regions[new_idx];
+
+    fprintf(stderr, "target: %s, replacement: %s\n", target, replacement);
+    size_t old_len = strlen(target);
+    size_t new_len = strlen(replacement);
+
+    fprintf(stderr, "old_len: %zu, new_len: %zu\n", old_len, new_len);
+
+    if (new_len > old_len && new_len - old_len > *padding) return ;
+
+    char *start = (char *)P->payload;
+    size_t offset = 0;
+    // fprintf(stderr, "start: %s\n", start);
+    for (size_t i = 0; i < replace_idx; i++) {
+        size_t len = strlen(cur_region_seq->regions[i]);
+        offset += len + 1;
+        // if(cur_region_seq->regions[i][len - 1] == '\r') {
+        //     offset += len + 2;
+        // }
+        // else {
+        //     offset += len + 1;
+        // }
+    }
+    // char *replace_pos = strchr(start, target);
+    // fprintf(stderr, "offset: %zu\n", offset);
+    // fprintf(stderr, "P->len: %zu\n", P->len);
+    // fprintf(stderr, "P->slen: %zd\n", P->slen);
+    // fprintf(stderr, "start + offset: %s\n", start + offset);
+    // fprintf(stderr, "start + offset + old_len: %s\n", start + offset + old_len);
+    // fprintf(stderr, "P->len - (offset + old_len): %zu\n", P->len - (offset + old_len));
+
+    memmove(start + offset + new_len, start + offset + old_len, P->len - (offset + old_len));
+    // fprintf(stderr, "memmove\n");
+    memcpy(start + offset, replacement, new_len);
+    // fprintf(stderr, "memcpy\n");
+
+    P->len += (new_len - old_len);
+    // fprintf(stderr, "P->len: %zu\n", P->len);
+    *padding -= (new_len - old_len);
+    // fprintf(stderr, "P->payload: %s\n", P->payload);
+}
+
+void insert_region(MSG *P, RegionSequence *cur_region_seq, RNG &R, size_t &padding) {
+    // fprintf(stderr, "insert_region P: %s\n", P->payload);
+
+    if (cur_region_seq->count == 0) return;
+
+    // 随机选择插入点 (插入到 P->payload 的某个 Region 之后)
+    size_t insert_idx = R.rand(0, cur_region_seq->count - 1); 
+    // 随机选择插入的 Region
+    char *inserted = region_seq->regions[R.rand(0, region_seq->count - 1)];  
+
+    // 计算要插入的总长度
+    size_t insert_len = strlen(inserted) + 1;  // 包括换行符
+
+    fprintf(stderr, "insert_idx: %d, inserted: %s\n", insert_idx, inserted);
+
+    // 检查 padding 是否足够
+    if (insert_len > padding) return;
+
+    char *start = (char *)P->payload;
+
+    // 计算插入的偏置
+     size_t offset = 0;
+    for (size_t i = 0; i <= insert_idx; i++) {
+        size_t len = strlen(cur_region_seq->regions[i]);
+        offset += len + 1;
+        // if(cur_region_seq->regions[i][len - 1] == '\r') {
+        //     offset += len + 2;
+        // }
+        // else {
+        //     offset += len + 1;
+        // }
+    }
+
+    // 移动数据腾出空间
+    memmove(start + offset + insert_len, start + offset, P->len - offset);
+
+    // 插入 Region
+    memcpy(start + offset, inserted, insert_len-1);
+    start[offset + insert_len - 1] = '\n';
+    // 更新 P->len 和 padding
+    P->len += insert_len;
+    padding -= insert_len;
+}
+
+void copy_region(MSG *P, RegionSequence *cur_region_seq, RNG &R, size_t &padding) {
+    // fprintf(stderr, "copy_region P: %s\n", P->payload);
+
+    if (cur_region_seq->count == 0) return;
+
+    // 选择要复制的 Region
+    size_t copy_idx = R.rand(0, cur_region_seq->count - 1);
+    char *copied = cur_region_seq->regions[copy_idx];
+    fprintf(stderr, "copied: %s\n", copied);
+
+    // 随机选择复制到的Region之后
+    size_t copy_to_idx = R.rand(0, cur_region_seq->count - 1);
+    fprintf(stderr, "copy_to_idx: %d\n", copy_to_idx);
+    // 计算复制的长度
+    size_t copy_len = strlen(copied) + 1;
+
+    // 确保 padding 足够
+    if (copy_len > padding) return;
+
+    char *start = (char *)P->payload;
+    // 计算插入的偏置
+     size_t offset = 0;
+    for (size_t i = 0; i <= copy_to_idx; i++) {
+        size_t len = strlen(cur_region_seq->regions[i]);
+        offset += len + 1;
+        // if(cur_region_seq->regions[i][len - 1] == '\r') {
+        //     offset += len + 2;
+        // }
+        // else {
+        //     offset += len + 1;
+        // }
+    }
+
+    // 移动数据腾出空间
+    memmove(start + offset + copy_len, start + offset, P->len - offset);
+
+    // 复制 Region
+    memcpy(start + offset, copied, copy_len-1);
+    start[offset+copy_len-1] = '\n';
+
+    // 更新 P->len 和 padding
+    P->len += copy_len;
+    padding -= copy_len;
+}
+
+void delete_region(MSG *P, RegionSequence *cur_region_seq, RNG &R, size_t &padding) {
+    // fprintf(stderr, "delete_region P: %s\n", P->payload);
+
+    if (cur_region_seq->count == 0) return;
+
+    // 选择要删除的 Region
+    size_t delete_idx = R.rand(0, cur_region_seq->count - 1);
+    fprintf(stderr, "delete_idx: %d\n", delete_idx);
+    char *deleted = cur_region_seq->regions[delete_idx];
+
+    // 计算删除的长度
+    size_t delete_len = strlen(deleted) + 1;
+
+    // 计算删除的起点 (确保不越界)
+    size_t delete_pos = 0;
+    for (size_t i = 0; i < delete_idx; i++) {
+        delete_pos += strlen(cur_region_seq->regions[i]) + 1;
+    }
+
+    // delete_pos = MIN(delete_pos, P->len - delete_len);
+    if(delete_pos + delete_len > P->len) {
+        fprintf(stderr, "delete_pos + delete_len > P->len\n");
+        return ;
+    }
+
+    char *start = (char *)P->payload;
+
+    // 移动数据，删除目标 Region
+    memmove(start + delete_pos, start + delete_pos + delete_len, P->len - (delete_pos + delete_len));
+
+    // 更新 P->len 和 padding
+    P->len -= delete_len;
+    padding += delete_len;
+}
+
+
 /*
  * Given a message, generate a mutant version.
  */
 static MSG *mutate(RNG &R, MSG *M, size_t depth, size_t stage,
-    bool copy = false)
+    bool copy = false, bool is_real_msg = false)
 {
     if (M->outbound)
         return (copy? clone(M): M);
@@ -138,7 +359,32 @@ static MSG *mutate(RNG &R, MSG *M, size_t depth, size_t stage,
         int8_t i8    = 0x0; int16_t i16 = 0x0; int32_t i32 = 0x0;
         int64_t i64  = 0x0;
         int16_t *p16 = NULL; int32_t *p32 = NULL; int64_t *p64 = NULL;
-        switch (R.rand(0, 17))
+        
+        uint32_t rng;
+        RegionSequence *cur_region_seq = NULL;
+        // fprintf(stderr, "org M->len: %zu\n", M->len);
+        // fprintf(stderr, "org P->len: %zu\n", P->len);
+        if(is_real_msg) {
+            rng = R.rand(0, 22);
+            if(rng >= 19 ) {
+                fprintf(stderr, "is_real_msg\n");
+                // 解析 P->payload 填充 cur_region_seq
+                cur_region_seq = (RegionSequence *)pmalloc(sizeof(RegionSequence));
+                cur_region_seq->init();
+                parse_regions(cur_region_seq, P, padding);
+                // 解析 P->payload 填充 cur_region_seq
+                fprintf(stderr, "cur_region_seq->count: %d\n", cur_region_seq->count);
+                for (size_t i = 0; i < cur_region_seq->count; i++) {
+                    fprintf(stderr, "cur_region_seq->regions[%zu]: %s\n", i, cur_region_seq->regions[i]);
+                }
+            }
+        }
+        else {
+            rng = R.rand(0, 17);
+            // fprintf(stderr, " not is_real_msg\n");
+        }
+
+        switch (rng)
         {
             case 0:     // flip bits int8_t
             flip_8:
@@ -332,11 +578,66 @@ static MSG *mutate(RNG &R, MSG *M, size_t depth, size_t stage,
                     if (R.flip(k))
                         P->payload[j] = N->payload[j];
                 break;
+            case 18:    // insert keywords
+                fprintf(stderr, "case 18\n");
+                if (dict && dict->count > 0) {  
+                    // perror("doing insert keywords");
+                    // 随机选择一个关键词
+                    size_t keyword_index = R.rand(0, dict->count - 1);
+                    const char *keyword = dict->keywords[keyword_index];
+                    size_t keyword_len = strlen(keyword);
+                    
+                    if (keyword_len > 0 && padding >= keyword_len) {
+                        // 随机选择插入位置
+                        j = R.rand(0, P->len);
+            
+                        // 移动后面的数据为关键词腾出空间
+                        memmove((char *)P->payload + j + keyword_len, 
+                                (char *)P->payload + j, 
+                                P->len - j);
+            
+                        // 插入关键词
+                        memcpy((char *)P->payload + j, keyword, keyword_len);
+            
+                        // 更新长度信息
+                        P->len += keyword_len;
+                        padding -= keyword_len;
+                        // fprintf(stderr, "insert keywords complete: %s", (char *)P->payload);
+                    }
+                }
+                break;
+            case 19:    // 替换region
+                // fprintf(stderr, "case 19 original payload: %s\n", P->payload);
+                replace_region(P, cur_region_seq, R, &padding);
+                fprintf(stderr, "case 19 complete payload: %s\n", P->payload);
+                break;
+            case 20:    // 插入region
+                insert_region(P, cur_region_seq, R, padding);
+                fprintf(stderr, "case 20 complete payload: %s\n", P->payload);
+                break;
+            case 21:    // 复制region
+                copy_region(P, cur_region_seq, R, padding);
+                fprintf(stderr, "case 21 complete payload: %s\n", P->payload);
+                break;
+            case 22:    // 删除region
+                delete_region(P, cur_region_seq, R, padding);
+                fprintf(stderr, "case 22 complete payload: %s\n", P->payload);
+                break;
+        }
+        
+        if(is_real_msg && rng >= 19) {
+            // fprintf(stderr, "cur_region_seq->count: %d\n", cur_region_seq->count);
+            for(int i = 0; i < cur_region_seq->count; i++) {
+                // fprintf(stderr, "cur_region_seq->regions[%d]: %s\n", i, cur_region_seq->regions[i]);
+                pfree((void *)cur_region_seq->regions[i]);
+            }
+            pfree((void *)cur_region_seq);
         }
     }
 
     if (size != sizeof(MSG) + P->len)
     {
+        // fprintf(stderr, "size != sizeof(MSG) + P->len\n");
         size = sizeof(MSG) + P->len;
         P = (MSG *)prealloc((void *)P, size);
     }

@@ -34,6 +34,10 @@ struct QUEUE;
 struct RNG;
 struct PATCH;
 
+struct KeywordDict;
+struct RegionSequence;
+struct FieldSequence;
+
 typedef int (*mem_check_t)(const void *buf, size_t size, bool write);
 typedef int (*str_check_t)(const char *str);
 
@@ -60,6 +64,10 @@ static uint64_t option_nonce[2]     = {0};      // Random nonce.
 static mem_check_t option_mem_check = NULL;     // Memory error checker.
 static str_check_t option_str_check = NULL;     // String error checker.
 
+static KeywordDict *dict            =NULL;
+static RegionSequence *region_seq   =NULL;  // 初始化
+static FieldSequence *field_seq     =NULL;
+
 static SCHED *option_SCHED          = NULL;     // Recording to replay.
 static QUEUE *option_Q              = NULL;     // Local message queue.
 static RNG *option_RNG              = NULL;     // Random Number Generator.
@@ -71,6 +79,8 @@ static PATCH *option_P              = NULL;     // Patch to apply.
 #include "rr_fiber.cpp"
 #include "rr_print.cpp"
 #include "rr_fd.cpp"
+#include "rr_dict.cpp"
+#include "rr_seed.cpp"
 #include "rr_msg.cpp"
 #include "rr_pcap.cpp"
 #include "rr_signal.cpp"
@@ -605,7 +615,34 @@ void init(int argc, char **argv, char **envp)
         fclose(option_pcap);
         option_pcap = NULL;
         replay_init();
+
+        // read dict
+        dict = parse_ftp_dict("ftp.dict");
+        if (!dict) {
+            error("Failed to parse dict file\n");
+        } 
+        // fprintf(stderr, "dict count: %d\n", dict->count);
+        // for(int i=0; i<dict->count; i++){
+        //     fprintf(stderr, "dict word: %s\n", dict->keywords[i]);
+        // }
+        // read seed
+        const char *seed_dir = "/home/ubuntu/experiments/in-ftp";  // 目标目录
+        region_seq = parseSeed2RegionSeq(seed_dir);
+        field_seq = parseSeed2FieldSeq(seed_dir);
+        // 输出解析结果
+        // fprintf(stderr, "region_seq region count: %d\n", region_seq->count);
+        // for(int i=0; i<region_seq->count; i++){
+        //     fprintf(stderr, "region_seq region: %s\n", region_seq->regions[i]);
+        // }
+        // fprintf(stderr, "field_seq fields count: %d\n", field_seq->count);
+        // for(int i=0; i<field_seq->count; i++){
+        //     fprintf(stderr, "field_seq field: %s ", field_seq->fields[i]);
+        // }
+        // fprintf(stderr, "\n");
+
         fuzzer_main(nmsg);
+
+
     }
 }
 

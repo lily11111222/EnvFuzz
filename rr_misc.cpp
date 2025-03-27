@@ -219,6 +219,14 @@ static NOINLINE char *pstrdup(const char *s)
     memcpy(t, s, len+1);
     return t;
 }
+static NOINLINE char *pstrdup_l(const char *s, size_t len)
+{
+    assert(s != NULL);
+    char *t = (char *)pmalloc(len + 1);
+    memcpy(t, s, len);
+    t[len] = '\0';
+    return t;
+}
 
 /*
  * Get time (in microseconds)

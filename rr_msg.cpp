@@ -138,6 +138,21 @@
      K.port = port;
      (void)tdelete(&K, &Q->root, msg_compare);
  }
+
+ bool is_user_ubuntu(ENTRY *E) {
+    // fprintf(stderr, "msg->payload: %s", (const char *)msg->payload);
+    // 目标字符串及其长度
+    const char *target = "port://";
+    const size_t target_len = strlen(target);  // target_len = 11
+
+    // 校验 payload 长度是否足够
+    if (strlen(E->name) < target_len) {
+        return false;
+    }
+
+    // 比较前 target_len 字节
+    return memcmp(E->name, target, target_len) == 0;
+}
  
  /*
   * Get input from the queue.
@@ -164,7 +179,7 @@
          M = patch_next(M, option_P);
      if (option_fuzz && E->mutate) {
          warning("queue_read: option_fuzz && E->mutate");
-          M = fuzzer_mutate(E, M);
+          M = fuzzer_mutate(E, M, is_user_ubuntu(E));
      }
      if (M != N && option_log >= 2)
      {
@@ -227,7 +242,7 @@
          M = patch_next(M, option_P);
      if (option_fuzz && E->mutate){
          warning("option_fuzz && E->mutate");
-         M = fuzzer_mutate(E, M);
+         M = fuzzer_mutate(E, M, is_user_ubuntu(E));
      } 
      if (M != N && option_fuzz)
          FUZZ->patch->push_back(M);

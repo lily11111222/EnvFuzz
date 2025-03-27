@@ -458,7 +458,7 @@ boring_patch:
  * Fork the state.
  */
 #define COLOR(x, c)    ((x) == 0? GREY: c)
-static MSG *fuzzer_fork(MSG *M, PATCH *replay)
+static MSG *fuzzer_fork(MSG *M, PATCH *replay, bool is_real_msg)
 {
     // Step (0): Set-up the fork:
     FUZZ->patch = (PATCH *)pmalloc(sizeof(PATCH));
@@ -482,7 +482,7 @@ static MSG *fuzzer_fork(MSG *M, PATCH *replay)
         fuzzer_RNG->reset(seed);
         option_log = -1;
         mutex_enable(false);    // Avoid settid() overheads
-        return mutate(*fuzzer_RNG, M, fuzzer_depth, FUZZ->stage);
+        return mutate(*fuzzer_RNG, M, fuzzer_depth, FUZZ->stage, false, is_real_msg);
     }
     else
     {   // Parent:
@@ -615,7 +615,7 @@ static void fuzzer_syscall_callback(void)
 /*
  * Inner fuzzing loop.
  */
-static MSG *fuzzer_mutate(const ENTRY *E, MSG *M)
+static MSG *fuzzer_mutate(const ENTRY *E, MSG *M, bool is_real_msg)
 {
     // Step (1): Decide what to do:
     if (!option_fuzz || M->outbound || M->len == 0)
@@ -634,7 +634,7 @@ static MSG *fuzzer_mutate(const ENTRY *E, MSG *M)
             }
             // Return (possibly mutated) message:
             return mutate(*fuzzer_RNG, M, fuzzer_depth, FUZZ->stage,
-                /*clone=*/true);
+                /*clone=*/true, is_real_msg);
         default:
             break;
     }
@@ -660,7 +660,7 @@ static MSG *fuzzer_mutate(const ENTRY *E, MSG *M)
             if (FUZZ->stop)
                 exit(EXIT_FAILURE);
 
-            MSG *N = fuzzer_fork(M, P);
+            MSG *N = fuzzer_fork(M, P, is_real_msg);
             if (N != NULL)
                 return N;       // We are a leaf & N is the mutant message
         }
