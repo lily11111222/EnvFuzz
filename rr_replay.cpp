@@ -575,15 +575,15 @@
                      // 对于 SYS_openat，通常是 call->arg3 存储权限模式
                      mode = (mode_t)call->arg3.u32;  // 假设 arg3 存储的是模式
                  }
-                 warning("flags:%d", flags);
-                 warning("mode:%d", mode);
-                 warning("name:%s", name);
+                //  warning("flags:%d", flags);
+                //  warning("mode:%d", mode);
+                //  warning("name:%s", name);
                  // 调用系统调用
                  int fd = (call->no == SYS_open)
                              ? syscall(SYS_open, name, flags, mode)  // 调用 sys_open
                              : syscall(SYS_openat, call->arg0.fd, name, flags, mode);  // 调用 sys_openat
-                 if (call->no == SYS_open) warning("openat dir fd:%d", call->arg0.fd);
-                 warning("result fd:%d", fd);
+                //  if (call->no == SYS_open) warning("openat dir fd:%d", call->arg0.fd);
+                //  warning("result fd:%d", fd);
                  // 使用EnvFuzz原模拟的openat
                  fd_open((int)call->result, S_IFREG, SOCK_STREAM, flags, name);
                  // 检查文件描述符是否有效
@@ -675,22 +675,22 @@
              goto handler;
          case SYS_write:
          {
-             warning("SYS_write fd: %d", call->arg0.fd);
+            //  warning("SYS_write fd: %d", call->arg0.fd);
              // 获取文件描述符对应的文件名
              const char *filename = get_filename_from_fd(call->arg0.fd);
-             warning("SYS_write file name: %s", filename);
+            //  warning("SYS_write file name: %s", filename);
              // 确定是请求写入gcda
              if (!filename || strlen(filename) <= 5 || strcmp(filename + strlen(filename) - 5, ".gcda") != 0) 
                  goto handler;
              // 如果没有openat的gcda文件的fd
              if(GCDA_FD == -1) goto handler;
-             warning("write real fd: %d", GCDA_FD);
+            //  warning("write real fd: %d", GCDA_FD);
              // 获取真实文件描述符对应的真实文件名
              const char *real_filename = real_get_filename_from_fd(GCDA_FD);
-             warning("write real file name: %s", filename);
+            //  warning("write real file name: %s", filename);
              if (real_filename && strlen(real_filename) > 5 && strcmp(real_filename + strlen(real_filename) - 5, ".gcda") == 0)  {
                  int fd = GCDA_FD;
-                 warning("writeing gcda fd: %d", fd);
+                //  warning("writeing gcda fd: %d", fd);
                  const void *buf = (const void *)call->arg1.buf;  // 获取写入的数据
                  size_t size = (size_t)call->arg2.size;  // 获取写入的字节数
  
@@ -704,7 +704,7 @@
                  // 记录结果
                  call->arg0.fd = fd;
                  call->result = state->rax = bytes_written;
-                 warning("write bytes: %ld", bytes_written);
+                //  warning("write bytes: %ld", bytes_written);
                  // close(fd);
                  break;
              } else

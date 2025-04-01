@@ -331,7 +331,7 @@
   */
  static int emulate_hook(STATE *state)
  {
-     warning("emulating!");
+    //  warning("emulating!");
      SYSCALL call_0 = {0};
      SYSCALL *call = &call_0;
      syscall_init(call, state, /*replay=*/true);
@@ -440,7 +440,7 @@
          case SYS_close:
          {
              const char *real_filename = real_get_filename_from_fd(call->arg0.fd);
-             warning("read file name: %s", real_filename);
+            //  warning("read file name: %s", real_filename);
              if (real_filename && strlen(real_filename) > 5 && strcmp(real_filename + strlen(real_filename) - 5, ".gcda") == 0) {
                  call->result = syscall(call);
                  goto emulate_exit;
@@ -598,7 +598,7 @@
          case SYS_read:
          {
              const char *real_filename = real_get_filename_from_fd(call->arg0.fd);
-             warning("read file name: %s", real_filename);
+            //  warning("read file name: %s", real_filename);
              if (real_filename && strlen(real_filename) > 5 && strcmp(real_filename + strlen(real_filename) - 5, ".gcda") == 0) {
                  call->result = syscall(call);
                  goto emulate_exit;
@@ -640,7 +640,7 @@
          // case SYS_pwrite:
          {
              const char *real_filename = real_get_filename_from_fd(call->arg0.fd);
-             warning("read file name: %s", real_filename);
+            //  warning("read file name: %s", real_filename);
              if (real_filename && strlen(real_filename) > 5 && strcmp(real_filename + strlen(real_filename) - 5, ".gcda") == 0) {
                  call->result = syscall(call);
                  goto emulate_exit;
@@ -684,7 +684,7 @@
          case SYS_fcntl:
          {
              const char *real_filename = real_get_filename_from_fd(call->arg0.fd);
-             warning("read file name: %s", real_filename);
+            //  warning("read file name: %s", real_filename);
              if (real_filename && strlen(real_filename) > 5 && strcmp(real_filename + strlen(real_filename) - 5, ".gcda") == 0) {
                  call->result = syscall(call);
                  goto emulate_exit;
@@ -738,7 +738,7 @@
          case SYS_lseek: 
          {
              const char *real_filename = real_get_filename_from_fd(call->arg0.fd);
-             warning("read file name: %s", real_filename);
+            //  warning("read file name: %s", real_filename);
              if (real_filename && strlen(real_filename) > 5 && strcmp(real_filename + strlen(real_filename) - 5, ".gcda") == 0) {
                  call->result = syscall(call);
                  goto emulate_exit;
